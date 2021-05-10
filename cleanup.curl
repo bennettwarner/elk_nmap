@@ -1,0 +1,1 @@
+curl 'http://localhost:5601/api/spaces/space/default?overwrite=true' -X 'PUT' -H 'kbn-xsrf: true' -H 'Content-Type: application/json' --data $'{"name":"Default","id":"default","description":"This is your default space\u0021","color":"#00bfb3","disabledFeatures":["ml","fleet","stackAlerts","enterpriseSearch","logs","infrastructure","apm","uptime","siem"]}'
