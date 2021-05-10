@@ -116,7 +116,7 @@ def merge_two_dicts(x, y):
     return z
 
 def usage():
-	print("Usage: VulntoES.py [-i input_file | input_file=input_file] [-e elasticsearch_ip | es_ip=es_ip_address] [-p elasticsearch_port | es_port=es_server_port] [-I index_name] [-r report_type | --report_type=type] [-s name=value] [-h | --help]")
+	print("Usage: ingestor.py [-i input_file | input_file=input_file] [-e elasticsearch_ip | es_ip=es_ip_address] [-p elasticsearch_port | es_port=es_server_port] [-I index_name] [-r report_type | --report_type=type] [-s name=value] [-h | --help]")
 
 def main():
 	letters = 'i:I:e:p:r:s:h' #input_file, index_name es_ip_address, report_type, create_sql, create_xml, help
@@ -167,6 +167,7 @@ def main():
 		print("Sending Nmap data to Elasticsearch")
 		np = NmapES(in_file,es_ip,es_port,index_name)
 		np.toES()
+		print("Import complete!")
 	else:
 		print("Error: Invalid report type specified. Available options: nmap")
 		sys.exit()

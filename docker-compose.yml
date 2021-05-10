@@ -68,10 +68,15 @@ services:
       - elk
     depends_on:
       - elasticsearch
+    
+  kibana_init:
+    build:
+      context: kibana_init/
+    networks:
+      - elk
+    depends_on: 
+      - kibana
 
 networks:
   elk:
     driver: bridge
-
-volumes:
-  elasticsearch:

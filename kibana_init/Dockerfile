@@ -1,0 +1,3 @@
+FROM curlimages/curl
+
+CMD sleep 45 && curl 'http://kibana:5601/api/spaces/space/default?overwrite=true' -X 'PUT' -H 'kbn-xsrf: true' -H 'Content-Type: application/json' --data $'{"name":"Default","id":"default","description":"This is your default space\u0021","color":"#00bfb3","disabledFeatures":["ml","fleet","stackAlerts","enterpriseSearch","logs","infrastructure","apm","uptime","siem","monitoring"]}' && curl 'http://kibana:5601/api/saved_objects/index-pattern' -X 'POST' -H 'kbn-xsrf: true' -H 'Content-Type: application/json' --data '{"attributes":{"fieldAttrs":"{}","title":"nmap*","fields":"[]","runtimeFieldMap":"{}"}}'
