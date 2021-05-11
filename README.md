@@ -20,5 +20,7 @@ Changes from @marco-lancini's repo include bumping up to a current version of th
 * Place files in import and run:
 
     ```
-    docker-compose run -e PROJECT=proj_name ingestor
+    ingestor.py -i path_to_file -r nmap/nessus -I index
+    or 
+    docker-compose run -e PROJECT=name ingestor
     ```
