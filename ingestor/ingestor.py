@@ -8,7 +8,158 @@ import re
 import json
 import time
 import getopt
+import codecs
+import struct
+import locale
+import glob
 import xml.etree.ElementTree as xml
+from datetime import datetime
+
+class NessusES:
+	"This class will parse an Nessus v2 XML file and send it to Elasticsearch"
+
+	def __init__(self, input_file,es_ip,es_port,index_name, static_fields):
+		self.input_file = input_file
+		self.tree = self.__importXML()
+		self.root = self.tree.getroot()
+		self.es = Elasticsearch([{'host':es_ip,'port':es_port}])
+		self.index_name = index_name
+		self.static_fields = static_fields
+		vulnmapping = { "properties": {
+					"pluginName": { "type": "string", "fields": {
+						"raw": { "type": "string", "index": "not_analyzed" } } },
+					"ip": { "type": "string", "fields": {
+						"raw": { "type": "string", "index": "not_analyzed" } } },
+					"risk_factor": { "type": "string", "fields": {
+						"raw": { "type": "string", "index": "not_analyzed" } } },
+					"severity": { "type": "integer" },
+					"port": { "type": "integer" },
+					"pluginFamily": { "type": "string", "fields": {
+						"raw": { "type": "string", "index": "not_analyzed" } } },
+					"plugin_type": { "type": "string", "fields": {
+						"raw": { "type": "string", "index": "not_analyzed" } } },
+					"svc_name": { "type": "string", "fields": {
+						"raw": { "type": "string", "index": "not_analyzed" } } },
+					"svcid": { "type": "string", "fields": {
+						"raw": { "type": "string", "index": "not_analyzed" } } },
+					"synopsis": { "type": "string", "fields": {
+						"raw": { "type": "string", "index": "not_analyzed" } } },
+					"solution": { "type": "string", "fields": {
+						"raw": { "type": "string", "index": "not_analyzed" } } },
+					} }
+		mappings = { "mappings": { "vuln": vulnmapping } }
+
+	def displayInputFileName(self):
+		print(self.input_file)
+
+	def __importXML(self):
+		#Parse XML directly from the file path
+		return xml.parse(self.input_file)
+
+	def toES(self):
+		"Returns a dict of dictionaries for each issue in the report"
+		#Nessus root node only has 2 children. policy and report, we grab report here
+		report = list(self.root)[1]
+		dict_item={}
+		#each child node of report is a report host - rh
+		for rh in report:
+			ip = rh.attrib['name']
+			host_item={}
+			#print rh.tag
+			#iterate through attributes of ReportHost tags
+			for tag in list(rh):
+				dict_item={}
+				if tag.tag == 'HostProperties':
+					for child in list(tag):
+						if child.attrib['name'] == 'HOST_END':
+							host_item['time'] = child.text
+							host_item['time'] = datetime.strptime(host_item['time'], '%a %b %d %H:%M:%S %Y')
+							host_item['time'] = datetime.strftime(host_item['time'], '%Y/%m/%d %H:%M:%S')
+						if child.attrib['name'] == 'operating-system':
+							host_item['operating-system'] = child.text
+						if child.attrib['name'] == 'mac-address':
+							host_item['mac-address'] = child.text
+						if child.attrib['name'] == 'host-fqdn':
+							host_item['fqdn'] = child.text
+						host_item['ip'] = ip
+				elif tag.tag == 'ReportItem':
+					dict_item['scanner'] = 'nessus'
+					if tag.attrib['port']:
+						dict_item['port'] = int(tag.attrib['port'])
+					if tag.attrib['svc_name']:
+						dict_item['svc_name'] = tag.attrib['svc_name']
+					if tag.attrib['protocol']:
+						dict_item['protocol'] = tag.attrib['protocol']
+					if tag.attrib['severity']:
+						dict_item['severity'] = tag.attrib['severity']
+					if tag.attrib['pluginID']:
+						dict_item['pluginID'] = tag.attrib['pluginID']
+					if tag.attrib['pluginName']:
+						dict_item['pluginName'] = tag.attrib['pluginName']
+					if tag.attrib['pluginFamily']:
+						dict_item['pluginFamily'] = tag.attrib['pluginFamily']
+					#Iterate through child tags and texts of ReportItems
+					#These are necessary because there can be multiple of these tags
+					dict_item['cve'] = []
+					dict_item['bid'] = []
+					dict_item['xref'] = []
+					for child in list(tag):
+						#print child.tag
+						if child.tag == 'solution':
+							dict_item[child.tag] = child.text
+						if child.tag == 'risk_factor':
+							dict_item[child.tag] = child.text
+						if child.tag == 'description':
+							dict_item[child.tag] = child.text
+						if child.tag == 'synopsis':
+							dict_item[child.tag] = child.text
+						if child.tag == 'plugin_output':
+							dict_item[child.tag] = child.text
+						if child.tag == 'plugin_version':
+							dict_item[child.tag] = child.text
+						if child.tag == 'see_also':
+							dict_item[child.tag] = child.text
+						if child.tag == 'xref':
+							dict_item[child.tag].append(child.text)
+						if child.tag == 'bid':
+							dict_item[child.tag].append(child.text)
+						if child.tag == 'cve':
+							dict_item[child.tag].append(child.text)
+						if child.tag == 'cvss_base_score':
+							dict_item[child.tag] = float(child.text)
+						if child.tag == 'cvss_temporal_score':
+							dict_item[child.tag] = float(child.text)
+						if child.tag == 'cvss_vector':
+							dict_item[child.tag] = child.text
+						if child.tag == 'exploit_available':
+							if child.text == 'true':
+								dict_item[child.tag] = 1
+							else:
+								dict_item[child.tag] = 0
+						if child.tag == 'plugin_modification_date':
+							dict_item[child.tag] = child.text
+						if child.tag == 'plugin_type':
+							dict_item[child.tag] = child.text
+						try:
+							ip = host_item['ip']
+						except KeyError:
+							ip = "-"
+
+						try:
+							protocol = dict_item['protocol']
+						except KeyError:
+							protocol = "-"
+
+						try:
+							port = dict_item['port']
+						except KeyError:
+							port = 0
+						host_item['svcid'] = "%s/%s/%d" % (ip, protocol, port)
+
+						for name in self.static_fields:
+							dict_item[name] = self.static_fields[name]
+
+				self.es.index(index=self.index_name, body=json.dumps(dict(list(host_item.items())+list(dict_item.items()))))
 
 
 class NmapES:
@@ -131,8 +282,8 @@ def main():
 	in_file = ''
 	es_ip = '127.0.0.1'
 	es_port = 9200
-	report_type = 'nmap'
-	index_name = 'nmap-vuln-to-es'
+	report_type = ''
+	index_name = 'ingestor'
 	static_fields = dict()
 
 	for o,p in opts:
@@ -168,8 +319,13 @@ def main():
 		np = NmapES(in_file,es_ip,es_port,index_name)
 		np.toES()
 		print("Import complete!")
+	elif report_type.lower() == 'nessus':
+		print("Sending Nessus data to Elasticsearch")
+		np = NessusES(in_file,es_ip,es_port,index_name, static_fields)
+		np.toES()
+		print("Import complete!")
 	else:
-		print("Error: Invalid report type specified. Available options: nmap")
+		print("Error: Invalid report type specified. Available options: nmap or nessus")
 		sys.exit()
 
 if __name__ == "__main__":
