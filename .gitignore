@@ -1,6 +1,10 @@
 .DS_Store
 
-_data
+_data/*
+!_data/.gitkeep
+
+import/*
+!import/.gitkeep
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
