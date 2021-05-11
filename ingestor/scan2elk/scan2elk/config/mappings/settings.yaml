@@ -1,0 +1,32 @@
+analysis:
+  analyzer:
+    lowercase_analyzer:
+      type: custom
+      tokenizer: standard
+      filter:
+      - lowercase
+
+    uppercase_analyzer:
+      type: custom
+      tokenizer: standard
+      filter:
+      - uppercase
+
+
+  normalizer:
+    lowercase_normalizer:
+      type: custom
+      filter:
+      - lowercase
+
+    uppercase_normalizer:
+      type: custom
+      filter:
+      - uppercase
+
+
+index:
+  mapping:
+    total_fields:
+      # nessus can create quite a lot of fields (dflt is 1000)
+      limit: 3000

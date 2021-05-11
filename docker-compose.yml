@@ -77,6 +77,20 @@ services:
     depends_on: 
       - kibana
 
+  ingestor:
+    build: 
+      context: ingestor/
+    volumes:
+      - type: bind
+        source: ./import
+        target: /scans
+    environment:
+      PROJECT: default
+    networks: 
+        - elk
+    depends_on:
+        - elasticsearch
+
 networks:
   elk:
     driver: bridge

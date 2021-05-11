@@ -1,0 +1,83 @@
+cert:
+  type: object
+  enabled: false
+
+cert_commonname:
+  type: text
+  copy_to: m_common_name
+  fields:
+    raw:
+      type: keyword
+
+m_san:
+  type: text
+  copy_to: m_san
+  fields:
+    raw:
+      type: keyword
+
+cert_subjectaltname:
+  type: text
+#  copy_to: m_san
+  fields:
+    raw:
+      type: keyword
+
+cert_notafter:
+  type: date
+  copy_to: not_after
+  format: date_hour_minute_second
+  fields:
+    raw:
+      type: text
+
+cert_notbefore:
+  type: date
+  copy_to: not_before
+  format: date_hour_minute_second
+  fields:
+    raw:
+      type: text
+
+position:
+  type: text
+  fields:
+    raw:
+      type: keyword
+
+cert_keysize:
+  type: text
+  fields:
+    raw:
+      type: keyword
+
+m_public_key_len:
+  type: integer
+
+serialNumber:
+  type: text
+  copy_to: m_serial_number
+  fields:
+    raw:
+      type: keyword
+
+cert_signaturealgorithm:
+  type: text
+  copy_to: m_signature_algorithm
+  fields:
+    raw:
+      type: keyword
+
+cert_fingerprintsha1:
+  type: text
+  copy_to: m_sha1_fingerprint
+  fields:
+    raw:
+      type: keyword
+
+cert_fingerprintsha256:
+  type: text
+  copy_to: m_sha2_fingerprint
+  fields:
+    raw:
+      type: keyword

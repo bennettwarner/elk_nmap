@@ -1,0 +1,16 @@
+host_start:
+  type: date
+  format: date_hour_minute_second
+
+host_end:
+  type: date
+  format: date_hour_minute_second
+
+operating_system:
+  type: text
+  fields:
+    raw:
+      type: keyword
+
+os:
+  type: keyword
